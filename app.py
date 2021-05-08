@@ -8,6 +8,14 @@ class Jogador:
         self.saldo = 300
         self.perfil = None
 
+    def receber(self, valor):
+        self.saldo += valor
+
+    def pagar(self, valor, recebedor):
+        self.saldo -= valor
+        recebedor.receber(valor)
+        print(f'pago aluguel para o {recebedor.nome}, saldo: {recebedor.saldo}')
+
 class Propriedade:
     def __init__(self, nome, custo_venda, aluguel):
         self.nome = nome
@@ -49,15 +57,22 @@ class Game:
                 )
         self.rodadas = 0
         self.qtd_casas = len(self.tabuleiro)
-    
+
+    def get_recebedor(self, nome):
+        for recebedor in self.jogadores:
+            if nome == recebedor.nome:
+                return recebedor
+
+    def zerar_jogador(self, nome):
+        pass
+
     def start(self):
-        while self.rodadas < 10:
-            #contator de rodadas limetes
+        while self.rodadas < 1000:
             self.rodadas += 1
             print(f'Rodada {self.rodadas}', end="\n\n")
             for player in self.jogadores:
                 posicao = self.tabuleiro[player.posicao-1].nome if player.posicao else None
-                print(f'{player.nome} posição: {posicao}')
+                print(f'{player.nome} posição: {posicao} saldo: {player.saldo}')
                 numero = Dado.get_numero()
                 print('numero sortido', numero)
                 player.posicao += numero
@@ -69,23 +84,31 @@ class Game:
 
                 propriedade = self.tabuleiro[player.posicao-1]
                 print(f'propriedade {propriedade.nome}, dono: {propriedade.proprietario}')
-                #Compra do imovel
-                if not propriedade.proprietario:
-                    print('compro')
-                    propriedade.proprietario = player.nome
-                    player.saldo -= propriedade.custo_venda
-                elif propriedade.proprietario != player.nome:
-                    player.saldo -= propriedade.aluguel
-                    for recebedor in self.jogadores:
-                        if propriedade.proprietario == recebedor.nome:
-                            recebedor.saldo += propriedade.aluguel
-                            print(f'pago aluguel para o {recebedor.nome}')
-                    #devolver aluguel pago
-                else:
-                    print('minha casa vida que segue')
-                print()
 
-        print()
+                #Compra do imovel de acordo com perfil
+                if not propriedade.proprietario:
+                    if player.saldo >= propriedade.custo_venda:
+                        propriedade.proprietario = player.nome
+                        player.saldo -= propriedade.custo_venda
+
+                #Paga aluguel caso o imovel pertence a outro jogador
+                elif propriedade.proprietario != player.nome:
+                    if player.saldo >= propriedade.aluguel:
+                        recebedor = self.get_recebedor(propriedade.proprietario)
+                        if propriedade.proprietario == recebedor.nome:
+                            player.pagar(propriedade.aluguel, recebedor)
+                    #Jogador Eliminado
+                    else:
+                        recebedor = self.get_recebedor(propriedade.proprietario)
+                        player.pagar(player.saldo, recebedor)
+                        self.zerar_jogador(player.nome)
+
+
+
+
+                print()
+        for player in self.jogadores:
+            print(f'{player.nome}: {player.saldo}')
 
 
 if __name__ == "__main__":
