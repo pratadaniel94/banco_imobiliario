@@ -1,12 +1,26 @@
-from random import randint
-from time import sleep
-from abc import abstractmethod
+from random import randint, getrandbits
+import statistics
+
+
+estatistica = {
+    'timeout': 0,
+    'ultima_rodada': [],
+}
+
+players = [
+    {'nome': 'player1', 'win': 0, 'comportamento': 'impulsivo'},
+    {'nome': 'player2', 'win': 0, 'comportamento': 'exigente'},
+    {'nome': 'player3', 'win': 0, 'comportamento': 'cauteloso'},
+    {'nome': 'player4', 'win': 0, 'comportamento': 'aleatorio'}
+]
+
+
 class Jogador:
-    def __init__(self, nome, status=1):
+    def __init__(self, nome, status=1, perfil=None):
         self.posicao = 0
         self.nome = nome
         self.saldo = 300
-        self.perfil = None
+        self.perfil = perfil
         self.status = status
 
     def desativar(self):
@@ -31,21 +45,19 @@ class Dado:
     def __init__(self):
         pass
     
-    @abstractmethod
+    @staticmethod
     def get_numero():
         return randint(1, 6)
-
-class Tabuleiro:
-    pass
 
 class Game:
     def __init__(self):
         self.jogadores = [
-            Jogador('player1'),
-            Jogador('player2'),
-            Jogador('player3'),
-            Jogador('player4'),
+            Jogador(nome='player1', perfil='impulsivo'),
+            Jogador(nome='player2', perfil='exigente'),
+            Jogador(nome='player3', perfil='cauteloso'),
+            Jogador(nome='player4', perfil='aleatorio'),
         ]
+        self.timeout = 1
 
         # Carrega lista de propriedades de um csv e monta o tabuleiro
         self.tabuleiro = list()
@@ -84,10 +96,17 @@ class Game:
         if len(player_on) == 1:
             return player_on[0]
 
+    def comprar_propriedade(self, player, propriedade):
+        if player.saldo >= propriedade.custo_venda:
+            propriedade.proprietario = player.nome
+            player.saldo -= propriedade.custo_venda
+            return True
+        return False
+
 
 
     def start(self):
-        while self.rodadas < 100:
+        while self.rodadas < 1000:
             try:
                 self.rodadas += 1
                 print(f'Rodada {self.rodadas}', end="\n\n")
@@ -109,9 +128,21 @@ class Game:
 
                         #Compra do imovel de acordo com perfil
                         if not propriedade.proprietario:
-                            if player.saldo >= propriedade.custo_venda:
-                                propriedade.proprietario = player.nome
-                                player.saldo -= propriedade.custo_venda
+
+                            if player.perfil == "impulsivo":
+                               self.comprar_propriedade(player=player, propriedade=propriedade)
+
+                            elif player.perfil == "exigente":
+                                if propriedade.aluguel > 50:
+                                    self.comprar_propriedade(player=player, propriedade=propriedade)
+
+                            elif player.perfil == "cauteloso":
+                                if (player.saldo - propriedade.custo_venda) >= 80:
+                                    self.comprar_propriedade(player=player, propriedade=propriedade)
+
+                            elif player.perfil == "aleatorio":
+                                if bool(getrandbits(1)):
+                                    self.comprar_propriedade(player=player, propriedade=propriedade)
 
                         #Paga aluguel caso o imovel pertence a outro jogador
                         elif propriedade.proprietario != player.nome:
@@ -124,15 +155,50 @@ class Game:
                                 recebedor = self.get_player(propriedade.proprietario)
                                 player.pagar(player.saldo, recebedor)
                                 self.zerar_jogador(player.nome)
-                    print()
             except KeyboardInterrupt:
-                print('Game winner')
+                self.timeout = 0
                 break
 
-        for player in self.jogadores:
-            print(f'{player.nome}: {player.saldo}')
+        global estatistica, players
+
+        ganhador = max(self.jogadores, key=lambda jogador: jogador.saldo)
+
+        for player in players:
+            if player['nome'] == ganhador.nome:
+                player['win'] += 1
+                break
+
+        estatistica['timeout'] += self.timeout
+        estatistica['ultima_rodada'].append(self.rodadas)
 
 
 if __name__ == "__main__":
-    game = Game()
-    game.start()
+    qtd_games = 300
+    for x in range(qtd_games):
+        game = Game()
+        game.start()
+
+    print("********** ESTATÍSTICAS **********", end='\n\n')
+
+    # QUANTAS PARTIDAS TERMINAM POR TIMEOUT
+    print(f"***** Quantidade de Timeout ***** \n {estatistica['timeout']}", end='\n\n')
+
+    # QUANTOS TURNO EM MÉDIA DEMORA UMA PARTIDA
+    print(f"***** Média de rodadas ***** \n {statistics.mean(estatistica['ultima_rodada'])}")
+
+    # QUAL A PORCENTAGEM DE VITÓRIAS POR COMPORTAMENTO
+    comportamentos = list(map(lambda player: f"{player['comportamento']} {(player['win'] / qtd_games) * 100}% de vitoria", players))
+
+    print("\n ***** Porcentagem de vitórias por comportamento *****", end='\n\n')
+    for comportamento in comportamentos:
+        print(comportamento)
+
+    vencedor = max(players, key=lambda player: player['win'])
+    # QUAL COMPORTAMENTO MAIS VENCEU
+    print("\n ***** Qual comportamento mais vence *****")
+    print(vencedor.get('comportamento'))
+
+
+
+
+
