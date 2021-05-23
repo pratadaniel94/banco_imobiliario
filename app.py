@@ -1,5 +1,6 @@
 from random import randint, getrandbits
 import statistics
+from perfil import *
 
 
 estatistica = {
@@ -16,12 +17,12 @@ players = [
 
 
 class Jogador:
-    def __init__(self, nome, status=1, perfil=None):
+    def __init__(self, nome,estrategia, status=1):
         self.posicao = 0
         self.nome = nome
         self.saldo = 300
-        self.perfil = perfil
         self.status = status
+        self.estrategia = estrategia
 
     def desativar(self):
         self.status = 0
@@ -52,10 +53,10 @@ class Dado:
 class Game:
     def __init__(self):
         self.jogadores = [
-            Jogador(nome='player1', perfil='impulsivo'),
-            Jogador(nome='player2', perfil='exigente'),
-            Jogador(nome='player3', perfil='cauteloso'),
-            Jogador(nome='player4', perfil='aleatorio'),
+            Jogador(nome='player1', estrategia=impulsivo),
+            Jogador(nome='player2', estrategia=exigente),
+            Jogador(nome='player3', estrategia=cauteloso),
+            Jogador(nome='player4', estrategia=aleatorio),
         ]
         self.timeout = 1
 
@@ -98,9 +99,10 @@ class Game:
 
     def comprar_propriedade(self, player, propriedade):
         if player.saldo >= propriedade.custo_venda:
-            propriedade.proprietario = player.nome
-            player.saldo -= propriedade.custo_venda
-            return True
+            if player.estrategia(player=player, propriedade=propriedade):
+                propriedade.proprietario = player.nome
+                player.saldo -= propriedade.custo_venda
+                return True
         return False
 
 
@@ -128,21 +130,8 @@ class Game:
 
                         #Compra do imovel de acordo com perfil
                         if not propriedade.proprietario:
-
-                            if player.perfil == "impulsivo":
-                               self.comprar_propriedade(player=player, propriedade=propriedade)
-
-                            elif player.perfil == "exigente":
-                                if propriedade.aluguel > 50:
-                                    self.comprar_propriedade(player=player, propriedade=propriedade)
-
-                            elif player.perfil == "cauteloso":
-                                if (player.saldo - propriedade.custo_venda) >= 80:
-                                    self.comprar_propriedade(player=player, propriedade=propriedade)
-
-                            elif player.perfil == "aleatorio":
-                                if bool(getrandbits(1)):
-                                    self.comprar_propriedade(player=player, propriedade=propriedade)
+                            # Aplica pattern strategy
+                            self.comprar_propriedade(player=player, propriedade=propriedade)
 
                         #Paga aluguel caso o imovel pertence a outro jogador
                         elif propriedade.proprietario != player.nome:
