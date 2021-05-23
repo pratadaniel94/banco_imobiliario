@@ -1,4 +1,4 @@
-from random import randint, getrandbits
+from random import randint
 import statistics
 from perfil import *
 
