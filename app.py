@@ -18,6 +18,13 @@ players = [
 
 class Jogador:
     def __init__(self, nome,estrategia, status=1):
+        """
+        Instancia a classe jogador.
+
+        :param nome:
+        :param status:
+        :param perfil:
+        """
         self.posicao = 0
         self.nome = nome
         self.saldo = 300
@@ -25,33 +32,63 @@ class Jogador:
         self.estrategia = estrategia
 
     def desativar(self):
+        """
+        Desativa jogador na partida.
+
+        :return:
+        """
         self.status = 0
 
     def receber(self, valor):
+        """
+        Receber aluguel de alguma propriedade que possue.
+
+        :param valor:
+        :return:
+        """
         self.saldo += valor
 
     def pagar(self, valor, recebedor):
+        """
+        Efetua o pagamento do aluguel.
+
+        :param valor:
+        :param recebedor:
+        :return:
+        """
         self.saldo -= valor
         recebedor.receber(valor)
-        print(f'pago aluguel para o {recebedor.nome}, saldo: {recebedor.saldo}')
+        print(
+            f'pago aluguel para o {recebedor.nome}, saldo: {recebedor.saldo}'
+        )
+
 
 class Propriedade:
     def __init__(self, nome, custo_venda, aluguel):
+        """
+        Instancia a classe Propriedade.
+
+        :param nome:
+        :param custo_venda:
+        :param aluguel:
+        """
         self.nome = nome
         self.custo_venda = custo_venda
         self.aluguel = aluguel
         self.proprietario = None
 
+
 class Dado:
-    def __init__(self):
-        pass
-    
     @staticmethod
     def get_numero():
         return randint(1, 6)
 
+
 class Game:
     def __init__(self):
+        """
+        Instancia configurações para inicio da partida.
+        """
         self.jogadores = [
             Jogador(nome='player1', estrategia=impulsivo),
             Jogador(nome='player2', estrategia=exigente),
@@ -76,11 +113,24 @@ class Game:
         self.qtd_casas = len(self.tabuleiro)
 
     def get_player(self, nome):
+        """
+        Efetua a busca de um jogador.
+
+        :param nome:
+        :return:
+        """
         for player in self.jogadores:
             if nome == player.nome:
                 return player
 
     def zerar_jogador(self, nome):
+        """
+        Zera um jogador na partida desativando
+        status e removendo as propriedades.
+
+        :param nome:
+        :return:
+        """
         print(f'perdeu: {nome}')
         for propriedade in self.tabuleiro:
             if nome == propriedade.proprietario:
@@ -90,6 +140,12 @@ class Game:
             raise KeyboardInterrupt
 
     def check_vencedor(self):
+        """
+        Verifica se tem apenas um jogador ativo
+        na partida para identificar o vencedor.
+
+        :return:
+        """
         player_on = []
         for player in self.jogadores:
             if player.status:
@@ -98,6 +154,13 @@ class Game:
             return player_on[0]
 
     def comprar_propriedade(self, player, propriedade):
+        """
+        Efetura a compra da propridade.
+
+        :param player:
+        :param propriedade:
+        :return:
+        """
         if player.saldo >= propriedade.custo_venda:
             if player.estrategia(player=player, propriedade=propriedade):
                 propriedade.proprietario = player.nome
@@ -105,9 +168,12 @@ class Game:
                 return True
         return False
 
-
-
     def start(self):
+        """
+        Inicia o jogo.
+
+        :return:
+        """
         while self.rodadas < 1000:
             try:
                 self.rodadas += 1
@@ -115,31 +181,35 @@ class Game:
                 for player in self.jogadores:
                     if player.status:
                         posicao = self.tabuleiro[player.posicao-1].nome if player.posicao else None
-                        print(f'{player.nome} posição: {posicao} saldo: {player.saldo}')
+                        print(
+                            f'{player.nome} posição: {posicao} saldo: {player.saldo}'
+                        )
                         numero = Dado.get_numero()
                         print('numero sortido', numero)
                         player.posicao += numero
 
-                        #Verifica se chegou final do tabuleiro
+                        # Verifica se chegou final do tabuleiro
                         if player.posicao > self.qtd_casas:
                             player.posicao -= self.qtd_casas
                             player.saldo += 100
 
                         propriedade = self.tabuleiro[player.posicao-1]
-                        print(f'propriedade {propriedade.nome}, dono: {propriedade.proprietario}')
+                        print(
+                            f'propriedade {propriedade.nome}, dono: {propriedade.proprietario}'
+                        )
 
-                        #Compra do imovel de acordo com perfil
+                        # Compra do imovel de acordo com perfil
                         if not propriedade.proprietario:
                             # Aplica pattern strategy
                             self.comprar_propriedade(player=player, propriedade=propriedade)
 
-                        #Paga aluguel caso o imovel pertence a outro jogador
+                        # Paga aluguel caso o imovel pertence a outro jogador
                         elif propriedade.proprietario != player.nome:
                             if player.saldo > propriedade.aluguel:
                                 recebedor = self.get_player(propriedade.proprietario)
                                 if propriedade.proprietario == recebedor.nome:
                                     player.pagar(propriedade.aluguel, recebedor)
-                            #Jogador Eliminado
+                            # Jogador Eliminado
                             else:
                                 recebedor = self.get_player(propriedade.proprietario)
                                 player.pagar(player.saldo, recebedor)
@@ -176,7 +246,7 @@ if __name__ == "__main__":
     print(f"***** Média de rodadas ***** \n {statistics.mean(estatistica['ultima_rodada'])}")
 
     # QUAL A PORCENTAGEM DE VITÓRIAS POR COMPORTAMENTO
-    comportamentos = list(map(lambda player: f"{player['comportamento']} {(player['win'] / qtd_games) * 100}% de vitoria", players))
+    comportamentos = list(map(lambda player: f"{player['comportamento']} {(player['win'] / qtd_games) * 100:.2f}% de vitoria", players))
 
     print("\n ***** Porcentagem de vitórias por comportamento *****", end='\n\n')
     for comportamento in comportamentos:
@@ -186,8 +256,3 @@ if __name__ == "__main__":
     # QUAL COMPORTAMENTO MAIS VENCEU
     print("\n ***** Qual comportamento mais vence *****")
     print(vencedor.get('comportamento'))
-
-
-
-
-
